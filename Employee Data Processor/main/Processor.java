@@ -37,7 +37,9 @@ public class Processor {
             {
             writer.log("Cannot read input file");
             }
-
+            try {
+            Thread.sleep(5000);  
+            } catch (InterruptedException e) {}
             pool.shutdown();
             writer.write();
 
