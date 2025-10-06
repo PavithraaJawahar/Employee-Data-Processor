@@ -7,11 +7,13 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
+
+
 public class Custompool {
     private BlockingQueue<Runnable> taskqueue;
     private ThreadFactory factory;
     private Thread[] threads;
-    private boolean running=false;
+    private boolean running=true;
     
     public Custompool(ThreadFactory factory,int num_threads) 
     {
@@ -22,18 +24,27 @@ public class Custompool {
 
         for(int i=0;i<num_threads;i++)
         {
-            Runnable r=()->{
-            try{
-                while(running || !taskqueue.isEmpty())
-                {
-                    Runnable task=taskqueue.poll(500,TimeUnit.MILLISECONDS);
-                    task.run();
-                }
-            }catch(InterruptedException e)
-            {
-                Thread.currentThread().interrupt();
+        Runnable r = () -> {
+        try {
+        while (true) {
+            Runnable task;
+
+            if (running) {
+                
+                task = taskqueue.take();
+            } else {
+                
+                task = taskqueue.poll(500, TimeUnit.MILLISECONDS);
+                if (task == null) break; 
             }
-            };
+
+            task.run(); 
+        }
+    } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+    }
+};
+
 
             threads[i]=this.factory.newThread(r);
             threads[i].start();
@@ -55,4 +66,4 @@ public class Custompool {
     }
 }
 
-
+    
