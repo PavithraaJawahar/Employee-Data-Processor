@@ -5,7 +5,7 @@ import java.util.concurrent.ThreadFactory;
 public class Factory implements ThreadFactory {
     private String name;
     private int count=1;
-    public Factory(String namePrefix) {
+    public Factory(String name) {
         this.name= name;
     }
 
