@@ -1,65 +1,57 @@
-package threadpool;
-import exceptions.*;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.LinkedBlockingQueue;
+package main;
+import java.io.BufferedReader;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
 import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 
-public class Custompool {
-    private BlockingQueue<Runnable> taskqueue;
-    private ThreadFactory factory;
-    private Thread[] threads;
-    private boolean running=true;
-    
-    public Custompool(ThreadFactory factory,int num_threads) 
-    {
-        this.taskqueue=new LinkedBlockingQueue<>();
-        this.factory=(Factory) factory;
-        this.threads=new Thread[num_threads];
-        
+import model.*;
+import threadpool.*;
+import exceptions.FileprocessingException;
 
-        for(int i=0;i<num_threads;i++)
-        {
-        Runnable r = () -> {
-        try {
-        while (true) {
-            Runnable task;
+public class Processor {
+    public static void main(String[] args) {
+        String filename="resources/employees.txt";
+        int num_threads=20;
+        String logfilename="resources/debug.log";
 
-            if (running) {
-                
-                task = taskqueue.take();
-            } else {
-                
-                task = taskqueue.poll(500, TimeUnit.MILLISECONDS);
-                if (task == null) break; 
+        try{
+            Writer writer=new Writer(logfilename);
+            Factory factory=new Factory("myfactory");
+            Custompool pool=new Custompool(factory, num_threads);
+
+            try(BufferedReader br=new BufferedReader(new FileReader(filename)))
+            {
+                String line;
+                while((line=br.readLine())!=null)
+                {
+                    pool.execute(new Task(line,writer));
+
+                }
             }
+            catch(FileNotFoundException e)
+            {
+            writer.log("Cannot find input file");
+            }
+            catch(IOException e)
+            {
+            writer.log("Cannot read input file");
+            }
+            try {
+            Thread.sleep(5000);  
+            } catch (InterruptedException e) {}
 
-            task.run(); 
+
+
+            pool.shutdown();
+            writer.write();
+
         }
-    } catch (InterruptedException e) {
-        Thread.currentThread().interrupt();
-    }
-};
-
-
-            threads[i]=this.factory.newThread(r);
-            threads[i].start();
+        catch(FileprocessingException e)
+        {
+            System.err.println("Unable to process file by writer");
         }
+        
     }
-    public void execute(Runnable task)
-    {
-        if(running)
-        {taskqueue.offer(task);}
-        else throw new ThreadpoolException("Threadpool is going to shutdown");
-    }
-
-    public void shutdown() {
-        running = false;
-        for (Thread t : threads) t.interrupt();
-        for (Thread t : threads) {
-            try { t.join(); } catch (InterruptedException ignored) {}
-        }
-    }
+    
 }
